@@ -1,0 +1,23 @@
+{
+  "name": "ossp-concurrent-producer-consumer",
+  "version": "1.0.0",
+  "description": "Concurrent Producer-Consumer System Using Semaphores - KLH OS & Systems Programming (25CS2104E) Team 10",
+  "main": "backend/server.js",
+  "scripts": {
+    "dev": "node backend/server.js",
+    "start": "node backend/server.js",
+    "build:c": "wsl bash -c \"cd '/mnt/c/Users/duddu/OneDrive/Desktop/ossp project/c-core' && ./build.sh\"",
+    "test:c": "wsl bash -c \"cd '/mnt/c/Users/duddu/OneDrive/Desktop/ossp project/c-core' && ./bin/test_buffer && ./bin/test_concurrency\"",
+    "benchmark:c": "wsl bash -c \"cd '/mnt/c/Users/duddu/OneDrive/Desktop/ossp project/c-core' && ./bin/producer_consumer -B -j benchmark_results.json\"",
+    "valgrind": "wsl bash -c \"cd '/mnt/c/Users/duddu/OneDrive/Desktop/ossp project/c-core' && ./run_valgrind.sh\""
+  },
+  "keywords": [
+    "operating-systems",
+    "producer-consumer",
+    "semaphores",
+    "posix-threads",
+    "bounded-buffer"
+  ],
+  "author": "KLH OS Team 10",
+  "license": "MIT"
+}

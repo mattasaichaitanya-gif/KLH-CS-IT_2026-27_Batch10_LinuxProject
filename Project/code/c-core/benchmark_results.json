@@ -1,0 +1,72 @@
+{
+  "suite": "Producer-Consumer Concurrency Benchmark",
+  "timestamp": 1793269018921,
+  "scenarios": [
+    {
+      "name": "1P : 1C (Baseline Serial)",
+      "buffer_capacity": 10,
+      "producers": 1,
+      "consumers": 1,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0251,
+      "throughput_items_per_sec": 398962.70,
+      "corrupted_items": 0,
+      "passed": true
+    },
+    {
+      "name": "1P : 4C (Consumer Heavy / Underflow)",
+      "buffer_capacity": 10,
+      "producers": 1,
+      "consumers": 4,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0835,
+      "throughput_items_per_sec": 119797.78,
+      "corrupted_items": 0,
+      "passed": true
+    },
+    {
+      "name": "4P : 1C (Producer Heavy / Overflow)",
+      "buffer_capacity": 10,
+      "producers": 4,
+      "consumers": 1,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0861,
+      "throughput_items_per_sec": 116129.18,
+      "corrupted_items": 0,
+      "passed": true
+    },
+    {
+      "name": "4P : 4C (Balanced Concurrency)",
+      "buffer_capacity": 10,
+      "producers": 4,
+      "consumers": 4,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0265,
+      "throughput_items_per_sec": 376662.02,
+      "corrupted_items": 0,
+      "passed": true
+    },
+    {
+      "name": "8P : 8C (High Concurrency)",
+      "buffer_capacity": 20,
+      "producers": 8,
+      "consumers": 8,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0186,
+      "throughput_items_per_sec": 537056.93,
+      "corrupted_items": 0,
+      "passed": true
+    },
+    {
+      "name": "16P : 16C (Stress / Peak Contention)",
+      "buffer_capacity": 32,
+      "producers": 16,
+      "consumers": 16,
+      "total_items": 10000,
+      "elapsed_seconds": 0.0115,
+      "throughput_items_per_sec": 868206.29,
+      "corrupted_items": 0,
+      "passed": true
+    }
+  ]
+}

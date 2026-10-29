@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producer-Consumer Studio | POSIX Concurrency Visualizer</title>
+  
+  <!-- Modern Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation / Header -->
+  <header class="navbar" id="top-navbar">
+    <div class="nav-left">
+      <div class="logo-box">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-meta">
+          <h1 class="nav-title">Producer-Consumer Studio</h1>
+          <span class="nav-subtitle">POSIX Concurrency & Thread Synchronization</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <!-- Mode Switcher -->
+      <div class="mode-pill-toggle">
+        <button id="mode-interactive" class="mode-pill-btn active" title="Interactive visual simulation">
+          <span class="pill-dot"></span> Visual Simulation
+        </button>
+        <button id="mode-native-c" class="mode-pill-btn" title="Run Linux C binary in WSL">
+          <span class="pill-dot"></span> Native C (WSL)
+        </button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="header-actions">
+        <button id="btn-open-params" class="btn-nav" title="Configure Buffer and Thread Parameters">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"></path></svg>
+          <span>Parameters</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Command Control Bar -->
+  <section class="command-bar-wrapper">
+    <div class="command-bar">
+      <!-- Playback Controls -->
+      <div class="control-actions">
+        <button id="btn-start" class="btn-command btn-primary" title="Start or Pause (Space)">
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span id="btn-start-label">Start</span>
+        </button>
+        <button id="btn-step" class="btn-command btn-secondary" title="Execute one atomic step (S)">
+          <svg class="btn-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+          <span>Step</span>
+        </button>
+        <button id="btn-reset" class="btn-command btn-ghost" title="Reset system (R)">
+          <svg class="btn-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <div class="command-divider"></div>
+
+      <!-- Presets -->
+      <div class="preset-selector">
+        <div class="preset-pill-group">
+          <button class="btn-preset active" data-preset="balanced" title="Balanced: 2P : 2C">Balanced</button>
+          <button class="btn-preset" data-preset="overflow" title="Buffer Full Stress: 4P : 1C">Overflow Stress</button>
+          <button class="btn-preset" data-preset="underflow" title="Buffer Empty Stress: 1P : 4C">Underflow Stress</button>
+          <button class="btn-preset" data-preset="high-concurrency" title="High Contention: 6P : 6C">Contention</button>
+        </div>
+      </div>
+
+      <div class="command-divider"></div>
+
+      <!-- Speed -->
+      <div class="speed-control-group">
+        <div class="speed-buttons">
+          <button class="btn-speed active" data-speed="500">1x</button>
+          <button class="btn-speed" data-speed="250">2x</button>
+          <button class="btn-speed" data-speed="100">Max</button>
+        </div>
+      </div>
+
+      <!-- Quick Config Badge -->
+      <div class="config-summary-pill" id="config-pill-trigger" title="Click to modify parameters">
+        <span class="config-summary-text" id="config-summary-text">Buffer: 5 • 2P : 2C • 24 items</span>
+        <button class="btn-edit-config" aria-label="Edit configuration">✏️</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Clean Key Metrics Ribbon -->
+  <section class="telemetry-ribbon-wrapper">
+    <div class="telemetry-ribbon">
+      <!-- Card 1: Buffer Occupancy -->
+      <div class="telemetry-card">
+        <div class="telemetry-meta">
+          <span class="telemetry-label">Buffer</span>
+          <span class="telemetry-indicator" id="metric-occupancy-badge">0%</span>
+        </div>
+        <div class="telemetry-val-row">
+          <span class="telemetry-number" id="metric-occupancy-num">0 / 5</span>
+        </div>
+        <div class="occupancy-progress-bar">
+          <div class="occupancy-progress-fill" id="occupancy-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Produced -->
+      <div class="telemetry-card">
+        <div class="telemetry-meta">
+          <span class="telemetry-label">Produced</span>
+          <span class="telemetry-unit">/ <span id="metric-total-prod">24</span></span>
+        </div>
+        <div class="telemetry-val-row">
+          <span class="telemetry-number producer-accent" id="metric-produced">0</span>
+        </div>
+        <div class="telemetry-subtext" id="metric-prod-sub" style="display:none">0 items/sec</div>
+      </div>
+
+      <!-- Card 3: Consumed -->
+      <div class="telemetry-card">
+        <div class="telemetry-meta">
+          <span class="telemetry-label">Consumed</span>
+          <span class="telemetry-unit">/ <span id="metric-total-cons">24</span></span>
+        </div>
+        <div class="telemetry-val-row">
+          <span class="telemetry-number consumer-accent" id="metric-consumed">0</span>
+        </div>
+        <div class="telemetry-subtext" id="metric-cons-sub" style="display:none">0% complete</div>
+      </div>
+
+      <!-- Card 4: Integrity Check -->
+      <div class="telemetry-card">
+        <div class="telemetry-meta">
+          <span class="telemetry-label">Integrity</span>
+          <span class="telemetry-unit" id="metric-integrity-err">0 errors</span>
+        </div>
+        <div class="telemetry-val-row">
+          <span class="telemetry-number status-pass" id="metric-integrity">100% OK</span>
+        </div>
+      </div>
+
+      <!-- Card 5: System State -->
+      <div class="telemetry-card state-card">
+        <div class="telemetry-meta">
+          <span class="telemetry-label">State</span>
+          <span class="pulse-dot-indicator"></span>
+        </div>
+        <div class="telemetry-val-row">
+          <div id="metric-state"><span class="badge-state idle">IDLE</span></div>
+        </div>
+        <div class="telemetry-subtext" id="metric-state-sub" style="display:none">Paused</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Stage: 2-Column Split -->
+  <main class="main-workspace">
+    <!-- Left Column: Visualizer, Primitives, Threads -->
+    <section class="visualizer-column">
+      <!-- Synchronization Primitives HUD (Clean, No Clutter) -->
+      <div class="card sync-hud-card">
+        <div class="sync-hud-grid">
+          <!-- Semaphore 'empty' -->
+          <div class="sync-item sem-empty-item">
+            <div class="sync-item-top">
+              <span class="sync-badge sem-badge">sem_empty</span>
+              <span class="sync-title-label">Available Slots</span>
+            </div>
+            <div class="sync-count-row">
+              <span class="sync-huge-number" id="val-sem-empty">5</span>
+              <div class="sync-dots-row" id="sem-empty-dots"></div>
+            </div>
+          </div>
+
+          <!-- Mutex Lock -->
+          <div class="sync-item mutex-item" id="box-mutex">
+            <div class="sync-item-top">
+              <span class="sync-badge mutex-badge">pthread_mutex</span>
+              <span class="sync-title-label">Critical Section</span>
+            </div>
+            <div class="mutex-status-box" id="mutex-graphic">
+              <span class="mutex-icon" id="mutex-icon">🔓</span>
+              <div class="mutex-info">
+                <span class="mutex-state-text" id="mutex-status">UNLOCKED</span>
+                <span class="mutex-holder-text" id="mutex-holder">Free</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Semaphore 'full' -->
+          <div class="sync-item sem-full-item">
+            <div class="sync-item-top">
+              <span class="sync-badge sem-badge">sem_full</span>
+              <span class="sync-title-label">Occupied Items</span>
+            </div>
+            <div class="sync-count-row">
+              <span class="sync-huge-number" id="val-sem-full">0</span>
+              <div class="sync-dots-row" id="sem-full-dots"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Circular Bounded Buffer Canvas Panel -->
+      <div class="card buffer-canvas-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>Circular Buffer</span>
+          </div>
+          <div class="buffer-legend">
+            <span class="legend-item"><span class="legend-dot tail-dot"></span> Tail (Write)</span>
+            <span class="legend-item"><span class="legend-dot head-dot"></span> Head (Read)</span>
+          </div>
+        </div>
+
+        <div class="buffer-canvas-container">
+          <canvas id="circular-buffer-canvas"></canvas>
+          <div id="buffer-alert-overlay" class="buffer-alert hidden"></div>
+        </div>
+      </div>
+
+      <!-- Active Worker Threads Swimlane -->
+      <div class="card threads-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>Worker Threads</span>
+          </div>
+          <div class="threads-header-counts">
+            <span class="thread-count-badge" id="count-producers-badge">2 Producers</span>
+            <span class="thread-count-divider">·</span>
+            <span class="thread-count-badge" id="count-consumers-badge">2 Consumers</span>
+          </div>
+        </div>
+
+        <div class="threads-split-grid">
+          <!-- Producers Column -->
+          <div class="thread-subcolumn producer-subcolumn">
+            <div class="thread-card-list" id="producer-threads-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Consumers Column -->
+          <div class="thread-subcolumn consumer-subcolumn">
+            <div class="thread-card-list" id="consumer-threads-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Observability Station -->
+    <aside class="observability-column">
+      <div class="card tabbed-station-card">
+        <!-- Segmented Tab Navigation -->
+        <div class="station-tab-bar">
+          <button id="tab-btn-logs" class="station-tab active">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            <span>Live Feed</span>
+          </button>
+          <button id="tab-btn-benchmark" class="station-tab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Benchmarks</span>
+          </button>
+          <button id="tab-btn-arch" class="station-tab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <span>Architecture</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Live Event Feed -->
+        <div id="tab-content-logs" class="station-tab-content active">
+          <div class="feed-toolbar">
+            <div class="feed-filter-chips">
+              <button class="filter-chip active" data-filter="all">All</button>
+              <button class="filter-chip" data-filter="prod">Producers</button>
+              <button class="filter-chip" data-filter="cons">Consumers</button>
+              <button class="filter-chip" data-filter="sync">Mutex</button>
+            </div>
+            <button id="btn-clear-logs" class="btn-icon-text" title="Clear event feed">Clear</button>
+          </div>
+
+          <div class="feed-container" id="terminal-output">
+            <div class="feed-item info-item">
+              <span class="feed-time">INIT</span>
+              <span class="feed-tag tag-system">SYSTEM</span>
+              <span class="feed-text">Producer-Consumer initialized. Ready to execute.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Performance Benchmark Suite -->
+        <div id="tab-content-benchmark" class="station-tab-content">
+          <div class="benchmark-suite-view">
+            <div class="benchmark-hero-banner">
+              <div>
+                <h3 class="benchmark-hero-title">Throughput Benchmark</h3>
+                <p class="benchmark-hero-desc">Operations per second across thread contention ratios (Helgrind verified 0 race conditions).</p>
+              </div>
+              <button id="btn-trigger-benchmark" class="btn-command btn-primary btn-sm">
+                <span>Run C Benchmark</span>
+              </button>
+            </div>
+
+            <div class="benchmark-bars-wrapper" id="benchmark-bars">
+              <!-- Dynamically populated -->
+            </div>
+
+            <div class="benchmark-table-box">
+              <table class="benchmark-table">
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Buffer</th>
+                    <th>Time</th>
+                    <th>Throughput</th>
+                    <th>Integrity</th>
+                  </tr>
+                </thead>
+                <tbody id="benchmark-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: OS Architecture & Lock Hierarchy -->
+        <div id="tab-content-arch" class="station-tab-content">
+          <div class="arch-suite-view">
+            <div class="arch-card">
+              <h4 class="arch-card-title">Deadlock-Free 6-Step Hierarchy</h4>
+              <p class="arch-card-desc">Semaphore wait is called <strong>before</strong> mutex lock. Threads never sleep while holding the mutex, ensuring deadlocks are mathematically impossible.</p>
+              
+              <div class="protocol-split">
+                <div class="protocol-box producer-box">
+                  <div class="protocol-badge prod">Producer</div>
+                  <ol class="protocol-list">
+                    <li><code>sem_wait(&empty)</code></li>
+                    <li><code>pthread_mutex_lock(&mutex)</code></li>
+                    <li><code>buffer_enqueue(item)</code></li>
+                    <li><code>pthread_mutex_unlock(&mutex)</code></li>
+                    <li><code>sem_post(&full)</code></li>
+                  </ol>
+                </div>
+
+                <div class="protocol-box consumer-box">
+                  <div class="protocol-badge cons">Consumer</div>
+                  <ol class="protocol-list">
+                    <li><code>sem_wait(&full)</code></li>
+                    <li><code>pthread_mutex_lock(&mutex)</code></li>
+                    <li><code>buffer_dequeue(&item)</code></li>
+                    <li><code>pthread_mutex_unlock(&mutex)</code></li>
+                    <li><code>sem_post(&empty)</code></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Parameter Configuration Modal -->
+  <div id="modal-params" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">⚙️</span>
+          <div>
+            <h2 class="modal-title">System Parameters</h2>
+            <p class="modal-subtitle">Configure buffer capacity, threads, and pace</p>
+          </div>
+        </div>
+        <button id="modal-params-close" class="btn-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="param-grid">
+          <div class="param-group">
+            <div class="param-header">
+              <label for="input-buffer-size" class="param-label">Buffer Capacity (N)</label>
+              <span class="param-val-badge" id="val-buffer-size">5 slots</span>
+            </div>
+            <input type="range" id="input-buffer-size" min="2" max="16" value="5" step="1">
+          </div>
+
+          <div class="param-group">
+            <div class="param-header">
+              <label for="input-producers" class="param-label">Producers (P)</label>
+              <span class="param-val-badge" id="val-producers">2 threads</span>
+            </div>
+            <input type="range" id="input-producers" min="1" max="8" value="2" step="1">
+          </div>
+
+          <div class="param-group">
+            <div class="param-header">
+              <label for="input-consumers" class="param-label">Consumers (C)</label>
+              <span class="param-val-badge" id="val-consumers">2 threads</span>
+            </div>
+            <input type="range" id="input-consumers" min="1" max="8" value="2" step="1">
+          </div>
+
+          <div class="param-group">
+            <div class="param-header">
+              <label for="input-total-items" class="param-label">Workload Items</label>
+              <span class="param-val-badge" id="val-total-items">24 items</span>
+            </div>
+            <input type="range" id="input-total-items" min="6" max="100" value="24" step="2">
+          </div>
+
+          <div class="param-group full-width">
+            <div class="param-header">
+              <label for="input-speed" class="param-label">Clock Pace (Delay)</label>
+              <span class="param-val-badge" id="val-speed">500 ms</span>
+            </div>
+            <input type="range" id="input-speed" min="50" max="1200" value="500" step="50">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-apply-params" class="btn-command btn-primary">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/visualizer.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

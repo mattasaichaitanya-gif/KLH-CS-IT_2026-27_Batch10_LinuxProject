@@ -1,0 +1,131 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+/* Standard C and POSIX headers required for threading, time, and I/O */
+#include <stdio.h>      /* Standard I/O (printf, fprintf, perror) */
+#include <stdlib.h>     /* Memory allocation (malloc, calloc, free) & utility */
+#include <stdint.h>     /* Exact-width integer types (uint32_t) */
+#include <stdbool.h>    /* Boolean type (true, false) */
+#include <string.h>     /* String manipulation & memset */
+#include <time.h>       /* High-resolution clock timing (clock_gettime) */
+#include <unistd.h>     /* POSIX API constants and sleep calls */
+#include <errno.h>      /* System error codes (EINTR, etc.) */
+
+/* =========================================================================
+ * Terminal ANSI Color Codes for Clean CLI Presentation
+ * These escape sequences format console output with colors to make it
+ * effortless to visually distinguish between Producer and Consumer actions.
+ * ========================================================================= */
+#define ANSI_COLOR_RED     "\x1b[31m"  /* Error messages & corruption alerts */
+#define ANSI_COLOR_GREEN   "\x1b[32m"  /* Producer actions (enqueue) */
+#define ANSI_COLOR_YELLOW  "\x1b[33m"  /* Consumer actions (dequeue) */
+#define ANSI_COLOR_BLUE    "\x1b[34m"  /* System info & statistics */
+#define ANSI_COLOR_MAGENTA "\x1b[35m"  /* Waiting & synchronization events */
+#define ANSI_COLOR_CYAN    "\x1b[36m"  /* Headers, banners & section titles */
+#define ANSI_COLOR_WHITE   "\x1b[37m"  /* Standard highlight text */
+#define ANSI_COLOR_RESET   "\x1b[0m"   /* Reset color back to default */
+#define ANSI_RESET         "\x1b[0m"
+#define ANSI_BOLD          "\x1b[1m"   /* Bold text emphasis */
+#define ANSI_DIM           "\x1b[2m"   /* Dimmed text for timestamps */
+
+/* =========================================================================
+ * Default System Configuration Values
+ * These constants define safe defaults for buffer sizing and concurrency.
+ * ========================================================================= */
+#define DEFAULT_BUFFER_CAPACITY 5      /* Default buffer size (N): 5 slots */
+#define DEFAULT_NUM_PRODUCERS   2      /* Default number of producer threads (P) */
+#define DEFAULT_NUM_CONSUMERS   2      /* Default number of consumer threads (C) */
+#define DEFAULT_TOTAL_ITEMS     20     /* Default workload size to generate */
+#define DEFAULT_PROD_DELAY_MS   100    /* Simulated latency between items (producers) */
+#define DEFAULT_CONS_DELAY_MS   150    /* Simulated consumption latency (consumers) */
+#define MAX_BUFFER_CAPACITY     1024   /* Upper bound for buffer capacity safety */
+#define MAX_THREADS             128    /* Maximum thread pool limit */
+
+/* =========================================================================
+ * Data Structure: BufferItem
+ * Represents a single unit of data flowing through the bounded buffer.
+ * Contains both payload and telemetry metadata for data integrity verification.
+ * ========================================================================= */
+typedef struct {
+    int id;                 /* Unique sequence ID (#1, #2, #3...) */
+    int producer_id;        /* ID of the producer thread that generated this item */
+    int consumer_id;        /* ID of the consumer thread that extracted this item */
+    int value;              /* Computational payload value carried by the item */
+    long long timestamp_ms; /* Unix epoch timestamp when item was generated */
+    uint32_t checksum;      /* 32-bit FNV-1a checksum to verify zero data corruption */
+} BufferItem;
+
+/* =========================================================================
+ * Data Structure: SystemConfig
+ * Stores CLI flags and parameters parsed from command-line arguments.
+ * ========================================================================= */
+typedef struct {
+    int buffer_capacity;       /* Capacity of circular bounded buffer (N) */
+    int num_producers;         /* Number of active producer worker threads (P) */
+    int num_consumers;         /* Number of active consumer worker threads (C) */
+    int total_items;           /* Total items to produce before shutting down */
+    int producer_delay_ms;     /* Artificial delay in milliseconds for producers */
+    int consumer_delay_ms;     /* Artificial delay in milliseconds for consumers */
+    int verbose_level;         /* 0: Quiet/Benchmark, 1: Standard, 2: Full Debug */
+    bool benchmark_mode;       /* If true, runs the multi-scenario stress matrix */
+    char json_output_file[256];/* Path to export execution metrics as JSON */
+} SystemConfig;
+
+/* =========================================================================
+ * Data Structure: BenchmarkResult
+ * Captures throughput, elapsed execution time, and synchronization latency.
+ * ========================================================================= */
+typedef struct {
+    int items_produced;             /* Count of items generated by all producers */
+    int items_consumed;             /* Count of items received by all consumers */
+    int items_corrupted;            /* Count of checksum mismatches (should be 0) */
+    double elapsed_seconds;         /* Total wall-clock execution time */
+    double throughput_items_per_sec;/* Throughput metric: items / elapsed seconds */
+    long long total_wait_time_empty_us; /* Total time producers waited on sem_empty */
+    long long total_wait_time_full_us;  /* Total time consumers waited on sem_full */
+    long long total_mutex_hold_us;      /* Total time spent inside critical section */
+    int peak_buffer_occupancy;      /* High-water mark of filled buffer slots */
+} BenchmarkResult;
+
+/* =========================================================================
+ * Helper: current_time_ms
+ * Returns current monotonic time in milliseconds since epoch.
+ * Useful for item timestamps and performance measuring.
+ * ========================================================================= */
+static inline long long current_time_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (long long)(ts.tv_sec) * 1000LL + (ts.tv_nsec / 1000000LL);
+}
+
+/* =========================================================================
+ * Helper: sleep_ms
+ * High-precision sub-second sleep using POSIX nanosleep.
+ * Avoids CPU busy-waiting while simulating realistic thread workloads.
+ * ========================================================================= */
+static inline void sleep_ms(int ms) {
+    if (ms <= 0) return;
+    struct timespec req;
+    req.tv_sec = ms / 1000;
+    req.tv_nsec = (long)(ms % 1000) * 1000000L;
+    nanosleep(&req, NULL);
+}
+
+/* =========================================================================
+ * Helper: calculate_checksum (FNV-1a 32-bit Hash)
+ * Fowler-Noll-Vo 32-bit non-cryptographic hash function.
+ * Used to verify data integrity:
+ * - Producer calculates checksum over (id, producer_id, value, timestamp).
+ * - Consumer recalculates checksum upon dequeue.
+ * - If any race condition corrupted the shared slot, checksums mismatch.
+ * ========================================================================= */
+static inline uint32_t calculate_checksum(int id, int producer_id, int value, long long ts) {
+    uint32_t hash = 2166136261u; /* FNV-1a 32-bit initial offset basis */
+    hash = (hash ^ (uint32_t)id) * 16777619u;
+    hash = (hash ^ (uint32_t)producer_id) * 16777619u;
+    hash = (hash ^ (uint32_t)value) * 16777619u;
+    hash = (hash ^ (uint32_t)(ts & 0xFFFFFFFF)) * 16777619u;
+    return hash;
+}
+
+#endif /* COMMON_H */
